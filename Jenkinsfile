@@ -46,36 +46,11 @@ pipeline {
             steps {
                 echo '🧪 Running Java Selenium automated tests...'
                 script {
-                    // Clean target directory first
-                    sh 'rm -rf selenium-tests/target || true'
-                    
                     // Run tests in Docker container with Maven against EC2 deployment
+                    // Tests output will be visible in console logs
                     sh """
-                        docker run --rm \
-                            -v \$(pwd)/selenium-tests/target:/app/target:rw \
-                            ${TEST_IMAGE}
+                        docker run --rm ${TEST_IMAGE}
                     """
-                }
-            }
-        }
-        
-        stage('Publish Test Results') {
-            steps {
-                echo '📊 Publishing test results...'
-                script {
-                    // Publish TestNG results
-                    publishHTML([
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'selenium-tests/target/surefire-reports',
-                        reportFiles: 'index.html',
-                        reportName: 'Selenium Test Report',
-                        reportTitles: 'CRUD App Selenium Tests'
-                    ])
-                    
-                    // Archive test results
-                    archiveArtifacts artifacts: 'selenium-tests/target/surefire-reports/**/*', allowEmptyArchive: true
                 }
             }
         }
