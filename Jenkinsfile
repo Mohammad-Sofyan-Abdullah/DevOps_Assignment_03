@@ -46,10 +46,13 @@ pipeline {
             steps {
                 echo '🧪 Running Java Selenium automated tests...'
                 script {
+                    // Clean target directory first
+                    sh 'rm -rf selenium-tests/target || true'
+                    
                     // Run tests in Docker container with Maven against EC2 deployment
                     sh """
                         docker run --rm \
-                            -v \$(pwd)/selenium-tests/target:/app/target \
+                            -v \$(pwd)/selenium-tests/target:/app/target:rw \
                             ${TEST_IMAGE}
                     """
                 }
