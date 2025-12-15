@@ -87,8 +87,8 @@ pipeline {
                     </body>
                     </html>
                 """,
-                // *** FIX: Swapping to recipientList for better token handling ***
-                recipientList: '${CHANGES_AUTHORS_EMAIL}, ${DEFAULT_RECIPIENTS}, ' + env.TEAM_COLLABORATORS,
+                // *** FINAL FIX: Using 'to' with literal tokens for emailext to process ***
+                to: '$CHANGES_AUTHORS_EMAIL, $DEFAULT_RECIPIENTS, ' + env.TEAM_COLLABORATORS,
                 
                 from: 'jenkins@13.48.104.189',
                 replyTo: 'noreply@jenkins.local',
