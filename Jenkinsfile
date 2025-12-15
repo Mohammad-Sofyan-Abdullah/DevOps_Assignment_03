@@ -51,7 +51,7 @@ pipeline {
                         """,
                         // Use the static list of collaborators defined in the environment block
                         to: env.COLLABORATORS, 
-                        from: 'jenkins@your.server',
+                        from: 'sofyanrajpoot567@gmail.com',
                         replyTo: 'noreply@jenkins.local',
                         mimeType: 'text/html',
                         attachLog: true
