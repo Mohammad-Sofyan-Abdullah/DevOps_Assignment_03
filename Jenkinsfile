@@ -7,15 +7,16 @@ pipeline {
         }
     }
 
-    // ERROR FIXED: The empty 'environment {}' block has been removed.
+    // Define the collaborator emails for easy maintenance
+    environment {
+        COLLABORATORS = 'sofyanrajpoot567@gmail.com, qasimalik@gmail.com'
+    }
 
     stages {
         stage('Clone Repository') {
             steps {
                 echo '📥 Cloning code from GitHub...'
                 // Using the specific repository from the second Jenkinsfile for a concrete example
-                // NOTE: This assumes the repository is 'https://github.com/malik-qasim/JavaMaven.git' 
-                // If you are using 'https://github.com/Mohammad-Sofyan-Abdullah/DevOps_Assignment_03', change the URL below.
                 git branch: 'main', url: 'https://github.com/malik-qasim/JavaMaven.git' 
             }
         }
@@ -26,23 +27,8 @@ pipeline {
             echo '🧹 Post-build actions starting...'
             
             script {
-                // Configure safe directory for git commands to avoid warnings/errors
-                sh "git config --global --add safe.directory ${env.WORKSPACE}"
-                
-                // Get commit author email
-                def committer = sh(
-                    script: "git log -1 --pretty=format:'%ae'",
-                    returnStdout: true,
-                    // Handle case where git log might fail or be empty gracefully
-                    // by setting a fallback recipient if 'committer' is null/empty later.
-                    returnStatus: true 
-                )
-                
-                // If git log was successful, trim the output; otherwise, use a default placeholder
-                def recipientEmail = committer.status == 0 ? committer.stdout.trim() : 'DEFAULT_RECIPIENTS'
-
                 // Display build summary
-                echo '📋 Build execution completed. Sending email notification.'
+                echo '📋 Build execution completed. Sending email notification to collaborators.'
                 
                 // Send email notification using emailext
                 emailext(
@@ -63,8 +49,8 @@ pipeline {
                         </body>
                         </html>
                     """,
-                    // Use the dynamically retrieved committer email, or 'DEFAULT_RECIPIENTS' fallback
-                    to: recipientEmail, 
+                    // Use the static list of collaborators defined in the environment block
+                    to: env.COLLABORATORS, 
                     from: 'jenkins@your.server',
                     replyTo: 'noreply@jenkins.local',
                     mimeType: 'text/html',
