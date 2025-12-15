@@ -8,7 +8,7 @@ pipeline {
         EC2_HOST = '13.48.104.189:8000' // Your EC2 instance IP
         
         // IMPORTANT: Replace these with actual email addresses of collaborators/team members.
-        TEAM_COLLABORATORS = 'team-alias@company.com, another-dev@email.com'
+        TEAM_COLLABORATORS = 'sofyanrajpoot567@gmail.com, qasimalik@gmail.com'
     }
     
     stages {
@@ -69,7 +69,7 @@ pipeline {
                 echo '📋 Test execution completed'
             }
             
-            // Send email to the committer (${COMMITTERS_EMAIL}) AND the predefined collaborators (${env.TEAM_COLLABORATORS})
+            // Send email to the committer AND the predefined collaborators
             emailext(
                 subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
                 body: """
@@ -90,8 +90,9 @@ pipeline {
                     </body>
                     </html>
                 """,
-                // *** FIX: Using double quotes and combining tokens/variables correctly ***
-                to: "${COMMITTERS_EMAIL}, ${env.TEAM_COLLABORATORS}",
+                // *** THE CRITICAL FIX ***
+                // Concatenating the literal emailext token with the Groovy environment variable.
+                to: '$COMMITTERS_EMAIL, ' + env.TEAM_COLLABORATORS,
                 
                 from: 'jenkins@13.48.104.189',
                 replyTo: 'noreply@jenkins.local',
