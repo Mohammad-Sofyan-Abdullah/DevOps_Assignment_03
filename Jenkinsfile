@@ -1,11 +1,16 @@
 pipeline {
     agent any
     
+    // Define environment variables, including the list of recipients
     environment {
         // Docker image names
         APP_IMAGE = 'crud-webapp'
         TEST_IMAGE = 'selenium-java-tests'
         EC2_HOST = '13.48.104.189:8000' // Your EC2 instance IP
+        
+        // ** NEW: Define a list of team recipients/collaborators **
+        // Replace these emails with your team's mailing list or individual emails
+        TEAM_COLLABORATORS = 'team-alias@company.com, another-dev@email.com'
     }
     
     stages {
@@ -67,7 +72,7 @@ pipeline {
                 echo '📋 Test execution completed'
             }
             
-            // Send email to the person who pushed the code
+            // Send email to the committer AND the predefined collaborators
             emailext(
                 subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
                 body: """
@@ -88,7 +93,10 @@ pipeline {
                     </body>
                     </html>
                 """,
-                to: '${DEFAULT_RECIPIENTS}',
+                // *** THE MODIFIED RECIPIENT LIST ***
+                // This combines the committer(s) detected by SCM and the defined team list.
+                to: '${COMMITTERS_EMAIL}, ${env.TEAM_COLLABORATORS}',
+                
                 from: 'jenkins@13.48.104.189',
                 replyTo: 'noreply@jenkins.local',
                 mimeType: 'text/html',
