@@ -9,7 +9,7 @@ pipeline {
 
     // Define the collaborator emails for easy maintenance
     environment {
-        COLLABORATORS = 'sofyanrajpoot567@gmail.com, qasimalik@gmail.com'
+        COLLABORATORS = 'sofyanrajpoot567@gmail.com, qasimalik@gmail.com, irfaanyousafzai@gmail.com'
     }
 
     stages {
