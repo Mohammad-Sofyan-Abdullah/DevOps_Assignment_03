@@ -1,5 +1,5 @@
 pipeline {
-    // 1. Agent: Changed to use the specified Docker image for build environment
+    // Agent: Use the specified Docker image for a stable build environment
     agent {
         docker {
             image 'markhobson/maven-chrome'
@@ -7,44 +7,44 @@ pipeline {
         }
     }
 
-    // 2. Environment: Removed application-specific variables as requested stages are removed
-    environment {
-        // No environment variables needed for this minimal pipeline
-    }
+    // ERROR FIXED: The empty 'environment {}' block has been removed.
 
     stages {
-        // 3. Stage: Changed to 'Clone Repository' using the explicit 'git' step
         stage('Clone Repository') {
             steps {
                 echo '📥 Cloning code from GitHub...'
                 // Using the specific repository from the second Jenkinsfile for a concrete example
-                git branch: 'main', url: 'https://github.com/malik-qasim/JavaMaven.git'
+                // NOTE: This assumes the repository is 'https://github.com/malik-qasim/JavaMaven.git' 
+                // If you are using 'https://github.com/Mohammad-Sofyan-Abdullah/DevOps_Assignment_03', change the URL below.
+                git branch: 'main', url: 'https://github.com/malik-qasim/JavaMaven.git' 
             }
         }
-        
-        // Removed stages: 'Build Test Image', 'Verify Application', 'Run Selenium Tests'
-        // The pipeline will now proceed directly to the 'post' block after this stage.
     }
 
-    // 4. Post: Simplified to send an email based on the build status, 
-    // omitting complex test result parsing from the second script as no tests are run.
     post {
         always {
-            echo '🧹 Cleaning up (Minimal cleanup as no artifacts were built/pulled).'
+            echo '🧹 Post-build actions starting...'
             
-            // Get commit author email (requires Git to be installed or available in the agent)
             script {
-                // Configure safe directory for git commands in the workspace
+                // Configure safe directory for git commands to avoid warnings/errors
                 sh "git config --global --add safe.directory ${env.WORKSPACE}"
+                
+                // Get commit author email
                 def committer = sh(
                     script: "git log -1 --pretty=format:'%ae'",
-                    returnStdout: true
-                ).trim()
+                    returnStdout: true,
+                    // Handle case where git log might fail or be empty gracefully
+                    // by setting a fallback recipient if 'committer' is null/empty later.
+                    returnStatus: true 
+                )
+                
+                // If git log was successful, trim the output; otherwise, use a default placeholder
+                def recipientEmail = committer.status == 0 ? committer.stdout.trim() : 'DEFAULT_RECIPIENTS'
 
                 // Display build summary
-                echo '📋 Build execution completed'
+                echo '📋 Build execution completed. Sending email notification.'
                 
-                // Send email notification
+                // Send email notification using emailext
                 emailext(
                     subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
                     body: """
@@ -63,8 +63,8 @@ pipeline {
                         </body>
                         </html>
                     """,
-                    // Sending to the committer, assuming this email is set up
-                    to: committer, 
+                    // Use the dynamically retrieved committer email, or 'DEFAULT_RECIPIENTS' fallback
+                    to: recipientEmail, 
                     from: 'jenkins@your.server',
                     replyTo: 'noreply@jenkins.local',
                     mimeType: 'text/html',
