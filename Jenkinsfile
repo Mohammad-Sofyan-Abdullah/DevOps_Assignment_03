@@ -1,137 +1,84 @@
 pipeline {
+    // 1. Agent: Changed to use the specified Docker image for build environment
     agent {
         docker {
-            // Ensure this image has Maven, Chrome, and necessary dependencies for your tests
             image 'markhobson/maven-chrome'
-            // Using standard Jenkin's user for volume mount for better compatibility
-            args '-u 1000:1000 -v /var/lib/jenkins/.m2:/home/jenkins/.m2' 
+            args '-u root:root -v /var/lib/jenkins/.m2:/root/.m2'
         }
     }
-    
-    // Define collaborators here
+
+    // 2. Environment: Removed application-specific variables as requested stages are removed
     environment {
-        // IMPORTANT: Replace with actual email addresses of your collaborators.
-        TEAM_COLLABORATORS = 'sofyanrajpoot567@gmail.com, qasimalik@gmail.com'
+        // No environment variables needed for this minimal pipeline
     }
 
     stages {
+        // 3. Stage: Changed to 'Clone Repository' using the explicit 'git' step
         stage('Clone Repository') {
             steps {
-                echo '📥 Cloning repository...'
+                echo '📥 Cloning code from GitHub...'
+                // Using the specific repository from the second Jenkinsfile for a concrete example
                 git branch: 'main', url: 'https://github.com/malik-qasim/JavaMaven.git'
             }
         }
-
-        stage('Test') {
-            steps {
-                echo '🧪 Running Maven tests...'
-                // Using clean install to ensure dependencies are resolved
-                sh 'mvn clean install -DskipTests=false'
-            }
-        }
         
-        // This is necessary for the JUnit action to parse the reports
-        stage('Publish Test Results') {
-            steps {
-                echo '📋 Publishing test results...'
-                junit '**/target/surefire-reports/*.xml'
-            }
-        }
+        // Removed stages: 'Build Test Image', 'Verify Application', 'Run Selenium Tests'
+        // The pipeline will now proceed directly to the 'post' block after this stage.
     }
 
+    // 4. Post: Simplified to send an email based on the build status, 
+    // omitting complex test result parsing from the second script as no tests are run.
     post {
         always {
+            echo '🧹 Cleaning up (Minimal cleanup as no artifacts were built/pulled).'
+            
+            // Get commit author email (requires Git to be installed or available in the agent)
             script {
-                // Ensure Jenkins has permissions to run git commands
+                // Configure safe directory for git commands in the workspace
                 sh "git config --global --add safe.directory ${env.WORKSPACE}"
-                
-                // Get commit author email using your custom sh command
                 def committer = sh(
                     script: "git log -1 --pretty=format:'%ae'",
                     returnStdout: true
                 ).trim()
+
+                // Display build summary
+                echo '📋 Build execution completed'
                 
-                // --- Start of Test Report Parsing (Your Original Logic) ---
-                // Check for test reports before trying to read them
-                def testReportExists = fileExists('target/surefire-reports/*.xml')
-                
-                def emailBody = ""
-                def recipientList = "${committer}, ${env.TEAM_COLLABORATORS}"
-
-                if (testReportExists) {
-                    def raw = sh(
-                        script: "grep -h \"<testcase\" target/surefire-reports/*.xml",
-                        returnStdout: true,
-                        // Allow grep to fail if no results are found, handle empty string later
-                        returnStatus: true 
-                    ).trim()
-                    
-                    int total = 0
-                    int passed = 0
-                    int failed = 0
-                    int skipped = 0
-                    def details = ""
-
-                    raw.split('\n').each { line ->
-                        if (line.trim()) { // Ensure line is not empty
-                            total++
-                            def name = (line =~ /name=\"([^\"]+)\"/)[0][1]
-
-                            if (line.contains("<failure")) {
-                                failed++
-                                details += "❌ ${name} — FAILED\n"
-                            } else if (line.contains("<skipped") || line.contains("</skipped>")) {
-                                skipped++
-                                details += "⏭️ ${name} — SKIPPED\n"
-                            } else {
-                                passed++
-                                details += "✅ ${name} — PASSED\n"
-                            }
-                        }
-                    }
-                    
-                    emailBody = """
-                    <h2>Build ${env.BUILD_NUMBER} Test Summary</h2>
-                    <p>Triggered by: <strong>${committer}</strong></p>
-                    <p>Status: <strong>${currentBuild.currentResult}</strong></p>
-                    <hr>
-                    
-<pre>
-Total Tests:    ${total}
-Passed:         ${passed}
-Failed:         ${failed}
-Skipped:        ${skipped}
-
-Detailed Results:
-${details}
-</pre>
-                    <p>View full report: <a href="${env.BUILD_URL}testReport/">Test Report</a></p>
-                    """
-
-                } else {
-                     emailBody = """
-                    <h2>Build ${env.BUILD_NUMBER} Status: ${currentBuild.currentResult}</h2>
-                    <p>Triggered by: <strong>${committer}</strong></p>
-                    <p><strong>Note:</strong> Test reports were not found. Check the console logs for build failures in the 'Test' stage.</p>
-                    """
-                }
-                
-                // --- End of Test Report Parsing ---
-
+                // Send email notification
                 emailext(
-                    // Send to the committer (def committer) AND the collaborators (env.TEAM_COLLABORATORS)
-                    to: recipientList,
-                    subject: "Jenkins Pipeline: ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                    body: emailBody,
-                    mimeType: 'text/html' // Use HTML for a better formatted email
+                    subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
+                    body: """
+                        <html>
+                        <body>
+                            <h2>Jenkins Pipeline Build ${currentBuild.currentResult}</h2>
+                            <p><strong>Project:</strong> ${env.JOB_NAME}</p>
+                            <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                            <p><strong>Build Status:</strong> ${currentBuild.currentResult}</p>
+                            <p><strong>Triggered By:</strong> ${currentBuild.getBuildCauses()[0].shortDescription}</p>
+                            <hr>
+                            <p>Console Output: <a href="${env.BUILD_URL}console">View Logs</a></p>
+                            <hr>
+                            <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
+                            <p><strong>Timestamp:</strong> ${new Date()}</p>
+                        </body>
+                        </html>
+                    """,
+                    // Sending to the committer, assuming this email is set up
+                    to: committer, 
+                    from: 'jenkins@your.server',
+                    replyTo: 'noreply@jenkins.local',
+                    mimeType: 'text/html',
+                    attachLog: true
                 )
             }
         }
+        
         success {
             echo '✅ Pipeline completed successfully!'
         }
+        
         failure {
-            echo '❌ Pipeline failed! Check test reports.'
+            echo '❌ Pipeline failed! Check logs for clone issues.'
         }
     }
 }
