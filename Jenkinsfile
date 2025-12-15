@@ -7,7 +7,7 @@ pipeline {
         TEST_IMAGE = 'selenium-java-tests'
         EC2_HOST = '13.48.104.189:8000' // Your EC2 instance IP
         
-        // IMPORTANT: Replace these with actual email addresses of collaborators/team members.
+        // Define collaborators based on your input
         TEAM_COLLABORATORS = 'sofyanrajpoot567@gmail.com, qasimalik@gmail.com'
     }
     
@@ -62,10 +62,7 @@ pipeline {
         always {
             echo '🧹 Cleaning up...'
             script {
-                // Clean up test image
                 sh "docker rmi ${TEST_IMAGE} || true"
-                
-                // Display test summary
                 echo '📋 Test execution completed'
             }
             
@@ -90,9 +87,8 @@ pipeline {
                     </body>
                     </html>
                 """,
-                // *** THE CRITICAL FIX ***
-                // Concatenating the literal emailext token with the Groovy environment variable.
-                to: '$COMMITTERS_EMAIL, ' + env.TEAM_COLLABORATORS,
+                // *** FIX: Swapping to recipientList for better token handling ***
+                recipientList: '${CHANGES_AUTHORS_EMAIL}, ${DEFAULT_RECIPIENTS}, ' + env.TEAM_COLLABORATORS,
                 
                 from: 'jenkins@13.48.104.189',
                 replyTo: 'noreply@jenkins.local',
